@@ -5,6 +5,9 @@ uniform mat4 u_Model;
 uniform mat4 u_ModelInvTr;
 uniform mat4 u_ViewProj;
 uniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane
+uniform highp int u_SceneSelection; // 0 - watercolor mountains
+                                    // 1 - dusky mountains
+                                    // 2 - all biomes 
 
 in vec4 vs_Pos;
 in vec4 vs_Nor;
@@ -64,6 +67,45 @@ float fbm(vec2 p, float persistence, float octaves) {
     return total;
 }
 
+/* noise() and pNoise() from https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83 */
+float noise(vec2 p, float freq){
+    float unit = 64.0/freq; // TODO: is 64.0 the proper width?
+    vec2 ij = floor(p / unit);
+    vec2 xy = mod(p , unit) / unit;
+    //xy = 3.*xy*xy-2.*xy*xy*xy;
+    float x = .5*(1.-cos(3.141592653589 * xy[0]));
+    float y = .5*(1.-cos(3.141592653589 * xy[1]));
+    xy = vec2(x, y);
+    float a = randv((ij + vec2(0.0, 0.0)));
+    float b = randv((ij + vec2(1.0, 0.0)));
+    float c = randv((ij + vec2(0.0, 1.0)));
+    float d = randv((ij + vec2(1.0, 1.0)));
+    float x1 = mix(a, b, xy.x);
+    float x2 = mix(c, d, xy.x);
+    return mix(x1, x2, xy.y);
+}
+
+// Perlin noise function
+float pNoise(vec2 p, int res) {
+    float persistance = .5;
+    float n = 0.;
+    float normK = 0.;
+    float f = 4.;
+    float amp = 1.;
+    int iCount = 0;
+    for (int i = 0; i<50; i++){
+        n+=amp*noise(p, f);
+        f*=2.;
+        normK+=amp;
+        amp*=persistance;
+        if (iCount == res) break;
+        iCount++;
+    }
+    float nf = n/normK;
+    return nf*nf*nf*nf;
+}
+
+
 void main() {
   fs_Pos = vs_Pos.xyz;
   fs_Sine = (sin((vs_Pos.x + u_PlanePos.x) * 3.14159 * 0.1) + cos((vs_Pos.z + u_PlanePos.y) * 3.14159 * 0.1));
@@ -75,10 +117,25 @@ void main() {
   // float pert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 2.0, (vs_Pos.z + u_PlanePos[1]) / 2.2), 1.0 / 2.0, 8.0);
   // float height = pow(pert * 6.0, 1.50);
   
-  // Island
   float pert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 5.0, (vs_Pos.z + u_PlanePos[1]) / 5.2), 1.0 / 2.0, 12.0);
-  float height = pow(pert * 6.0, 1.70);
 
+  float perlin = pNoise(vec2(vs_Pos.x + u_PlanePos[0], (vs_Pos.z + u_PlanePos[1])), 100) + 
+                 pNoise(vec2(vs_Pos.x + u_PlanePos[0] + randv(vec2(vs_Pos)) / 5.0, (vs_Pos.z + u_PlanePos[1] + randv(vec2(vs_Pos)) / 3.5)), 4);
+
+  float height;
+  if (u_SceneSelection == 0) {
+    // Cloudy mountains
+    height = pow(pert * 6.0, 1.7);
+  }
+  else if (u_SceneSelection == 1) {
+    // More realistic mountains
+    height = pow(pert, 7.70) * 6.0;
+  }
+  else if (u_SceneSelection == 2) {
+    // Try sand dunes 
+    float sandPert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 5.0, (vs_Pos.z + u_PlanePos[1]) / 5.2), 1.0 / 2.0, 8.0);
+    height = pow(pert * 6.0, 2.0);
+  }
 
   // Saw-tooth wave
 

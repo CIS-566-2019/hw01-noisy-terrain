@@ -31,6 +31,8 @@ class ShaderProgram {
   unifColor: WebGLUniformLocation;
   unifPlanePos: WebGLUniformLocation;
 
+  unifSceneSelection: WebGLUniformLocation;
+
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
 
@@ -49,6 +51,8 @@ class ShaderProgram {
     this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
     this.unifViewProj   = gl.getUniformLocation(this.prog, "u_ViewProj");
     this.unifPlanePos   = gl.getUniformLocation(this.prog, "u_PlanePos");
+    
+    this.unifSceneSelection = gl.getUniformLocation(this.prog, "u_SceneSelection");
   }
 
   use() {
@@ -83,6 +87,13 @@ class ShaderProgram {
     this.use();
     if (this.unifPlanePos !== -1) {
       gl.uniform2fv(this.unifPlanePos, pos);
+    }
+  }
+
+  setSceneSelection(sceneNum: number) {
+    this.use();
+    if (this.unifSceneSelection !== -1) {
+      gl.uniform1i(this.unifSceneSelection, sceneNum);
     }
   }
 

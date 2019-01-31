@@ -8,12 +8,16 @@ import Camera from './Camera';
 import {setGL} from './globals';
 import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 
+var THREE = require('three');
+
+
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   'Load Scene': loadScene, // A function pointer, essentially
   'Year': 2018,
-  'Biome type': "painted mountains"
+  'scene selection': 'watercolor mountains',
+  'biome size': 100
 };
 
 let square: Square;
@@ -83,6 +87,8 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
+  gui.add(controls, 'scene selection', ['all biomes', 'watercolor mountains', 'dusky mountains']);
+  gui.add(controls, 'biome size', 50, 500);
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -140,6 +146,18 @@ function main() {
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.clear();
     processKeyPresses();
+
+    // Pass scene information to shaders
+    if (controls["scene selection"] === "watercolor mountains") {
+      lambert.setSceneSelection(0);
+    }
+    else if (controls["scene selection"] === "dusky mountains") {
+      lambert.setSceneSelection(1);
+    }
+    else if (controls["scene selection"] === "all biomes") {
+      lambert.setSceneSelection(2);
+    }
+
     renderer.render(camera, lambert, [
       plane,
     ]);
