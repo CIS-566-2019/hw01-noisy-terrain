@@ -17,7 +17,8 @@ const controls = {
   'Load Scene': loadScene, // A function pointer, essentially
   'Year': 2018,
   'scene selection': 'watercolor mountains',
-  'biome size': 100
+  'octaves: watercolor': 12,
+  'octaves: dusky': 4
 };
 
 let square: Square;
@@ -87,8 +88,9 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-  gui.add(controls, 'scene selection', ['all biomes', 'watercolor mountains', 'dusky mountains']);
-  gui.add(controls, 'biome size', 50, 500);
+  gui.add(controls, 'scene selection', ['mesas', 'watercolor mountains', 'dusky mountains']);
+  gui.add(controls, 'octaves: watercolor', 1, 15);
+  gui.add(controls, 'octaves: dusky', 1, 15);
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -154,9 +156,11 @@ function main() {
     else if (controls["scene selection"] === "dusky mountains") {
       lambert.setSceneSelection(1);
     }
-    else if (controls["scene selection"] === "all biomes") {
+    else if (controls["scene selection"] === "mesas") {
       lambert.setSceneSelection(2);
     }
+    lambert.setOctavesPainted(controls["octaves: watercolor"]);
+    lambert.setOctavesDusky(controls["octaves: dusky"]);
 
     renderer.render(camera, lambert, [
       plane,

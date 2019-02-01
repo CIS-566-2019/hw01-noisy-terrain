@@ -7,7 +7,9 @@ uniform mat4 u_ViewProj;
 uniform vec2 u_PlanePos; // Our location in the virtual world displayed by the plane
 uniform highp int u_SceneSelection; // 0 - watercolor mountains
                                     // 1 - dusky mountains
-                                    // 2 - all biomes 
+                                    // 2 - mesas
+uniform highp int u_OctavesPainted;
+uniform highp int u_OctavesDusky;
 
 in vec4 vs_Pos;
 in vec4 vs_Nor;
@@ -19,6 +21,7 @@ out vec4 fs_Col;
 
 out float fs_Sine;
 out float fs_Height;
+out float fs_Slope;
 
 float random1( vec2 p , vec2 seed) {
   return fract(sin(dot(p + seed, vec2(127.1, 311.7))) * 43758.5453);
@@ -55,14 +58,16 @@ float interpNoise2D(vec2 p) {
 }
 
 // Normal fbm
-float fbm(vec2 p, float persistence, float octaves) {
+float fbm(vec2 p, float persistence, int octaves) {
     p /= 10.0f; // higher divisor = less variability of land; lower = really random/jumpy
     float total = 0.0;
 
-    for (float i = 0.0; i < octaves; i++) {
-        float freq = pow(2.0, i);
-        float amp = pow(persistence, i);
+    float counter = 0.0;
+    for (int i = 0; i < octaves; i++) {
+        float freq = pow(2.0, counter);
+        float amp = pow(persistence, counter);
         total += interpNoise2D(vec2(p.x * freq, p.y * freq)) * amp;
+        counter++;
     }
     return total;
 }
@@ -105,22 +110,15 @@ float pNoise(vec2 p, int res) {
     return nf*nf*nf*nf;
 }
 
-
 void main() {
   fs_Pos = vs_Pos.xyz;
   fs_Sine = (sin((vs_Pos.x + u_PlanePos.x) * 3.14159 * 0.1) + cos((vs_Pos.z + u_PlanePos.y) * 3.14159 * 0.1));
   vec4 modelposition = vec4(vs_Pos.x, fs_Sine * 2.0, vs_Pos.z, 1.0);
 
-  // Calculate height based on x, z coords using fbm
-
-  // Painted mountains
-  // float pert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 2.0, (vs_Pos.z + u_PlanePos[1]) / 2.2), 1.0 / 2.0, 8.0);
-  // float height = pow(pert * 6.0, 1.50);
-  
-  float pert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 5.0, (vs_Pos.z + u_PlanePos[1]) / 5.2), 1.0 / 2.0, 12.0);
-
   float perlin = pNoise(vec2(vs_Pos.x + u_PlanePos[0], (vs_Pos.z + u_PlanePos[1])), 100) + 
-                 pNoise(vec2(vs_Pos.x + u_PlanePos[0] + randv(vec2(vs_Pos)) / 5.0, (vs_Pos.z + u_PlanePos[1] + randv(vec2(vs_Pos)) / 3.5)), 4);
+                 pNoise(vec2(vs_Pos.x + u_PlanePos[0] + randv(vec2(vs_Pos)) / 5.0, (vs_Pos.z + u_PlanePos[1] + randv(vec2(vs_Pos)) / 3.5)), u_OctavesDusky);
+
+  float pert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 5.0, (vs_Pos.z + u_PlanePos[1]) / 5.2), 1.0 / 2.0, u_OctavesPainted);
 
   float height;
   if (u_SceneSelection == 0) {
@@ -128,17 +126,41 @@ void main() {
     height = pow(pert * 6.0, 1.7);
   }
   else if (u_SceneSelection == 1) {
-    // More realistic mountains
-    height = pow(pert, 7.70) * 6.0;
+    // More realistic mountains / dusky mountains
+    height = pow(perlin * 4.0, 1.3) * 6.0;
   }
   else if (u_SceneSelection == 2) {
-    // Try sand dunes 
-    float sandPert = fbm(vec2((vs_Pos.x + u_PlanePos[0]) / 5.0, (vs_Pos.z + u_PlanePos[1]) / 5.2), 1.0 / 2.0, 8.0);
-    height = pow(pert * 6.0, 2.0);
+    // Mesas
+    float fbmNoise = fbm(vec2((vs_Pos.x / 2.0 + u_PlanePos[0]), (vs_Pos.z / 2.0 + u_PlanePos[1])), 0.6, 6);
+    height = pow(fbmNoise, 7.70) * 6.0;
+
+    height = clamp(height, 0.0, 10.0);
   }
 
+  // ----------------------------------IDEA DUMP HERE------------------------------------
   // Saw-tooth wave
 
+  // Sloping
+  // Get four neighbors' height
+  // float perlinXPlus = pNoise(vec2((vs_Pos.x + 1.0) + u_PlanePos[0], ((vs_Pos.z) + u_PlanePos[1])), 100) + 
+  //   pNoise(vec2((vs_Pos.x + 1.0) + u_PlanePos[0] + randv(vec2(vs_Pos.x + 1.0, vs_Pos.z)) / 5.0, (vs_Pos.z + u_PlanePos[1] + randv(vec2(vs_Pos.x + 1.0, vs_Pos.z)) / 3.5)), 4);
+  // float perlinXMinus = pNoise(vec2((vs_Pos.x - 1.0) + u_PlanePos[0], ((vs_Pos.z) + u_PlanePos[1])), 100) + 
+  //   pNoise(vec2((vs_Pos.x - 1.0) + u_PlanePos[0] + randv(vec2(vs_Pos.x - 1.0, vs_Pos.z)) / 5.0, (vs_Pos.z + u_PlanePos[1] + randv(vec2(vs_Pos.x - 1.0, vs_Pos.z)) / 3.5)), 4);
+  // float perlinZPlus = pNoise(vec2((vs_Pos.x) + u_PlanePos[0], ((vs_Pos.z + 1.0) + u_PlanePos[1])), 100) + 
+  //   pNoise(vec2((vs_Pos.x) + u_PlanePos[0] + randv(vec2(vs_Pos.x, vs_Pos.z + 1.0)) / 5.0, ((vs_Pos.z + 1.0) + u_PlanePos[1] + randv(vec2(vs_Pos.x, vs_Pos.z + 1.0)) / 3.5)), 4);
+  // float perlinZMinus = pNoise(vec2((vs_Pos.x) + u_PlanePos[0], ((vs_Pos.z - 1.0) + u_PlanePos[1])), 100) + 
+  //   pNoise(vec2((vs_Pos.x) + u_PlanePos[0] + randv(vec2(vs_Pos.x, vs_Pos.z - 1.0)) / 5.0, ((vs_Pos.z - 1.0) + u_PlanePos[1] + randv(vec2(vs_Pos.x, vs_Pos.z - 1.0)) / 3.5)), 4);
+
+  // // Compute slope (y2 - y1 / x2 - x1)
+  // float slopeX = (perlinXPlus - perlinXMinus) / (2.0);
+  // float slopeZ = (perlinZPlus - perlinZMinus) / (2.0);
+
+  // if (slopeX > slopeZ) {
+  //   fs_Slope = slopeX;
+  // }
+  // else {
+  //   fs_Slope = slopeZ;
+  // }
 
   fs_Height = height;
   modelposition[1] = height;

@@ -32,6 +32,8 @@ class ShaderProgram {
   unifPlanePos: WebGLUniformLocation;
 
   unifSceneSelection: WebGLUniformLocation;
+  unifOctavesPainted: WebGLUniformLocation;
+  unifOctavesDusky: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -53,6 +55,9 @@ class ShaderProgram {
     this.unifPlanePos   = gl.getUniformLocation(this.prog, "u_PlanePos");
     
     this.unifSceneSelection = gl.getUniformLocation(this.prog, "u_SceneSelection");
+    this.unifOctavesPainted = gl.getUniformLocation(this.prog, "u_OctavesPainted");
+    this.unifOctavesDusky = gl.getUniformLocation(this.prog, "u_OctavesDusky");
+
   }
 
   use() {
@@ -94,6 +99,20 @@ class ShaderProgram {
     this.use();
     if (this.unifSceneSelection !== -1) {
       gl.uniform1i(this.unifSceneSelection, sceneNum);
+    }
+  }
+
+  setOctavesPainted(octaves: number) {
+    this.use();
+    if (this.unifOctavesPainted !== -1) {
+      gl.uniform1i(this.unifOctavesPainted, octaves);
+    }
+  }
+
+  setOctavesDusky(octaves: number) {
+    this.use();
+    if (this.unifOctavesDusky !== -1) {
+      gl.uniform1i(this.unifOctavesDusky, octaves);
     }
   }
 

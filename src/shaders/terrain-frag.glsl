@@ -10,6 +10,7 @@ in vec4 fs_Col;
 
 in float fs_Sine;
 in float fs_Height;
+in float fs_Slope;
 
 out vec4 out_Col; // This is the final output color that you will see on your
                   // screen for the pixel that is currently being processed.
@@ -79,7 +80,18 @@ void main() {
 
     // Mix in order to create fog effect
     out_Col = vec4(mix(customColor, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);
+
+    // Old provided color 
     // out_Col = vec4(mix(vec3(0.5 * (fs_Sine + 1.0)), vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);
+
+    // ----------------------TESTING AREA--------------------------------
+    // if (abs(fs_Slope) < 0.1) {
+    //     out_Col = vec4(mix(customColor, vec3(164.0 / 255.0, 233.0 / 255.0, 1.0), t), 1.0);
+    //     //out_Col = vec4(162.0 / 255.0, 130.0 / 255.0, 114.0 / 255.0, 1.0);
+    // }
+    // else {
+    //     out_Col = vec4(mountain[1], 1.0);
+    // }
 
     // Coloring based on normal, inspired from CIS-461 PROBLEM: looks really grey
     vec3 normalColor = (vec3(fs_Nor) + vec3(1.0, 1.0, 1.0)) * 0.5;
