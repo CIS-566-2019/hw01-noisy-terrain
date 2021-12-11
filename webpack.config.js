@@ -1,14 +1,15 @@
 const path = require('path');
 
 module.exports = {
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   entry: path.resolve(__dirname, "src/main"),
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "bundle.js",
-    publicPath: 'dist/',
+    publicPath: '/',
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.ts$/,
         use: 'ts-loader',
@@ -26,6 +27,11 @@ module.exports = {
   devtool: 'source-map',
   devServer: {
     port: 5660,
-    overlay: true,
+    static: {
+      directory: path.join(__dirname, 'dist'),
+    },
+    client: {
+      overlay: true,
+    }
   },
 };
